@@ -126,14 +126,24 @@
       console.error(error);
       return;
     }
-    try { localStorage.setItem("vds_done", "1"); } catch (e) {}
     done();
   }
 
   function done() {
+    let left = 12;
     $("app").innerHTML = '<div class="thanks"><div class="big">🎙️</div><h2 class="q">¡Gracias por tu voz!</h2>' +
       '<p>Tu respuesta ya forma parte del estudio.</p>' +
-      '<p><a href="resultados.html" class="btn primary" style="text-decoration:none;display:inline-block">Ver resultados</a></p></div>';
+      '<p><button class="btn primary" id="again">Responder otra vez</button></p>' +
+      '<p class="hint">La encuesta se reinicia sola en <b id="cd">' + left + '</b> s para la siguiente persona.</p>' +
+      '<p><a href="resultados.html">Ver resultados</a></p></div>';
+    const restart = () => location.reload();
+    $("again").addEventListener("click", restart);
+    const t = setInterval(() => {
+      left--;
+      const el = $("cd");
+      if (el) el.textContent = left;
+      if (left <= 0) { clearInterval(t); restart(); }
+    }, 1000);
   }
 
   $("next").addEventListener("click", () => {
@@ -145,10 +155,5 @@
   });
   $("back").addEventListener("click", () => { if (idx > 0) { idx--; render(); } });
 
-  let already = false;
-  try { already = localStorage.getItem("vds_done") === "1"; } catch (e) {}
-  if (already) {
-    $("app").innerHTML = '<div class="thanks"><div class="big">✅</div><h2 class="q">Ya respondiste esta encuesta</h2>' +
-      '<p>¡Gracias por participar!</p><p><a href="resultados.html">Ver resultados</a></p></div>';
-  } else render();
+  render();
 })();
