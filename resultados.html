@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Resultados · Voces del Sur</title>
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <img src="logo.png" alt="Logo Voces del Sur">
+  <h1>Resultados</h1>
+  <p>Datos agregados y anónimos de la encuesta Venidos y Quedados</p>
+  <nav class="top"><a href="index.html">Encuesta</a><a href="resultados.html">Resultados</a></nav>
+</header>
+<main>
+  <section class="card" id="out"><p>Cargando…</p></section>
+</main>
+<footer>© Voces del Sur · Río Gallegos, Santa Cruz</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script>
+const sb = window.supabase.createClient(VDS_CONFIG.SUPABASE_URL, VDS_CONFIG.SUPABASE_ANON_KEY);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const pct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
+
+function chart(title, obj) {
+  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) return "";
+  const total = entries.reduce((s, e) => s + e[1], 0);
+  const max = entries[0][1];
+  return '<div class="chart"><h3>' + esc(title) + "</h3>" + entries.map(([k, v]) =>
+    '<div class="bar-row"><span>' + esc(k) + '</span><div class="bar"><i style="width:' + pct(v, max) + '%"></i></div><b>' + pct(v, total) + "%</b></div>").join("") + "</div>";
+}
+
+(async () => {
+  const { data, error } = await sb.rpc("get_resumen");
+  const out = document.getElementById("out");
+  if (error || !data) { out.innerHTML = "<p>No se pudieron cargar los resultados.</p>"; return; }
+  const d = data;
+  if (!d.total) { out.innerHTML = "<p>Todavía no hay respuestas. ¡Sé la primera voz!</p>"; return; }
+  out.innerHTML =
+    '<div class="kpis"><div class="kpi"><b>' + d.total + "</b><span>Respuestas</span></div>" +
+    '<div class="kpi"><b>' + pct(d.nacidos, d.total) + "%</b><span>Quedados (nacidos acá)</span></div>" +
+    '<div class="kpi"><b>' + pct(d.venidos, d.total) + "%</b><span>Venidos</span></div></div>" +
+    '<div class="chart"><h3>Promedio “¿Te gusta la ciudad?” (1 a 5)</h3>' +
+    '<div class="bar-row"><span>Quedados</span><div class="bar"><i style="width:' + pct(d.gusta_nacidos || 0, 5) + '%"></i></div><b>' + (d.gusta_nacidos ?? "–") + "</b></div>" +
+    '<div class="bar-row"><span>Venidos</span><div class="bar"><i style="width:' + pct(d.gusta_venidos || 0, 5) + '%"></i></div><b>' + (d.gusta_venidos ?? "–") + "</b></div></div>" +
+    '<div class="chart"><h3>Promedio “¿Cuánto te sentís riogalleguense?” (1 a 5)</h3>' +
+    '<div class="bar-row"><span>Quedados</span><div class="bar"><i style="width:' + pct(d.riogall_nacidos || 0, 5) + '%"></i></div><b>' + (d.riogall_nacidos ?? "–") + "</b></div>" +
+    '<div class="bar-row"><span>Venidos</span><div class="bar"><i style="width:' + pct(d.riogall_venidos || 0, 5) + '%"></i></div><b>' + (d.riogall_venidos ?? "–") + "</b></div></div>" +
+    chart("Motivo de llegada (venidos)", d.motivo_llegada) +
+    chart("Edad de llegada (venidos)", d.edad_llegada) +
+    chart("¿Te trajeron o viniste por tu cuenta?", d.trajeron_de_chico) +
+    chart("Lo que más gusta", d.lo_mejor) +
+    chart("Lo que menos gusta", d.lo_peor) +
+    chart("¿Seguir viviendo acá?", d.futuro) +
+    chart("Años viviendo en la ciudad", d.anios_en_ciudad) +
+    chart("Rango de edad", d.grupo_edad);
+})();
+</script>
+</body>
+</html>

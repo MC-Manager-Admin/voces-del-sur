@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voces del Sur · Venidos y Quedados</title>
+<meta name="description" content="Encuesta sobre venidos y quedados en Río Gallegos. Proyecto del podcast Voces del Sur.">
+<link rel="icon" href="logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <img src="logo.png" alt="Logo Voces del Sur">
+  <h1>Venidos y Quedados</h1>
+  <p>Estudio sobre la identidad y el arraigo en Río Gallegos · Podcast Voces del Sur</p>
+  <nav class="top"><a href="index.html">Encuesta</a><a href="resultados.html">Resultados</a></nav>
+</header>
+
+<main>
+  <section class="card" id="app">
+    <div class="progress"><div id="bar"></div></div>
+    <div class="step-label" id="label"></div>
+    <div id="step"></div>
+    <div class="error" id="err"></div>
+    <input class="hp" id="hp" type="text" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <div class="actions">
+      <button class="btn ghost" id="back">← Atrás</button>
+      <button class="btn primary" id="next">Siguiente →</button>
+    </div>
+  </section>
+</main>
+
+<footer>Respuestas anónimas. Se usan solo con fines académicos y de divulgación.<br>© Voces del Sur · Río Gallegos, Santa Cruz</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
