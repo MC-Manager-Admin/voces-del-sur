@@ -28,39 +28,65 @@ const sb = window.supabase.createClient(VDS_CONFIG.SUPABASE_URL, VDS_CONFIG.SUPA
 const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = (n, t) => (t ? Math.round((n / t) * 100) : 0);
 
-function chart(title, obj) {
-  const entries = Object.entries(obj || {}).sort((a, b) => b[1] - a[1]);
-  if (!entries.length) return "";
-  const total = entries.reduce((s, e) => s + e[1], 0);
-  const max = entries[0][1];
-  return '<div class="chart"><h3>' + esc(title) + "</h3>" + entries.map(([k, v]) =>
-    '<div class="bar-row"><span>' + esc(k) + '</span><div class="bar"><i style="width:' + pct(v, max) + '%"></i></div><b>' + pct(v, total) + "%</b></div>").join("") + "</div>";
+// Orden natural para respuestas ordinales (el resto se ordena de mayor a menor)
+const ORDER = {
+  anios_en_ciudad: ["Menos de 1 año", "1 a 5 años", "5 a 10 años", "10 a 20 años", "Más de 20 años"],
+  edad_llegada: ["Bebé o antes de los 5 años", "Entre 5 y 12 años", "Entre 13 y 17 años", "Entre 18 y 30 años", "Después de los 30"],
+  grupo_edad: ["Menos de 18", "18 a 25", "26 a 35", "36 a 50", "Más de 50"],
+  naturaleza_bienestar: ["Sí, mucho", "Un poco", "No influye"],
+  sentido_excluido: ["Nunca", "Alguna vez", "Seguido"],
+  recomendaria: ["Sí", "Depende", "No"]
+};
+
+// % = personas que eligieron la opción / personas que respondieron esa pregunta.
+// El largo de la barra es exactamente ese porcentaje.
+function chart(title, obj, denom, key, note) {
+  const entries = Object.entries(obj || {});
+  if (!entries.length || !denom) return "";
+  if (ORDER[key]) entries.sort((a, b) => ORDER[key].indexOf(a[0]) - ORDER[key].indexOf(b[0]));
+  else entries.sort((a, b) => b[1] - a[1]);
+  return '<div class="chart"><h3>' + esc(title) + ' <small style="color:#5b6785;font-weight:400">(n=' + denom + ")</small></h3>" +
+    entries.map(([k, v]) => '<div class="bar-row"><span>' + esc(k) + '</span><div class="bar"><i style="width:' + pct(v, denom) + '%"></i></div><b>' + pct(v, denom) + "%</b></div>").join("") +
+    (note ? '<div class="hint" style="margin-top:.4rem">' + esc(note) + "</div>" : "") + "</div>";
+}
+
+function avg(title, n, v, a, b) {
+  const row = (lab, x) => '<div class="bar-row"><span>' + lab + '</span><div class="bar"><i style="width:' + pct(x || 0, 5) + '%"></i></div><b>' + (x ?? "–") + "</b></div>";
+  return '<div class="chart"><h3>' + esc(title) + "</h3>" + row("Quedados", a) + row("Venidos", b) + "</div>";
 }
 
 (async () => {
   const { data, error } = await sb.rpc("get_resumen");
   const out = document.getElementById("out");
   if (error || !data) { out.innerHTML = "<p>No se pudieron cargar los resultados.</p>"; return; }
-  const d = data;
-  if (!d.total) { out.innerHTML = "<p>Todavía no hay respuestas. ¡Sé la primera voz!</p>"; return; }
+  const d = data, T = d.total, V = d.venidos;
+  if (!T) { out.innerHTML = "<p>Todavía no hay respuestas. ¡Sé la primera voz!</p>"; return; }
+  const irse = Object.values(d.motivo_irse || {}).reduce((x, y) => x + y, 0);
+  const multi = "Se podía elegir hasta 3 opciones: los porcentajes no suman 100%.";
   out.innerHTML =
-    '<div class="kpis"><div class="kpi"><b>' + d.total + "</b><span>Respuestas</span></div>" +
-    '<div class="kpi"><b>' + pct(d.nacidos, d.total) + "%</b><span>Quedados (nacidos acá)</span></div>" +
-    '<div class="kpi"><b>' + pct(d.venidos, d.total) + "%</b><span>Venidos</span></div></div>" +
-    '<div class="chart"><h3>Promedio “¿Te gusta la ciudad?” (1 a 5)</h3>' +
-    '<div class="bar-row"><span>Quedados</span><div class="bar"><i style="width:' + pct(d.gusta_nacidos || 0, 5) + '%"></i></div><b>' + (d.gusta_nacidos ?? "–") + "</b></div>" +
-    '<div class="bar-row"><span>Venidos</span><div class="bar"><i style="width:' + pct(d.gusta_venidos || 0, 5) + '%"></i></div><b>' + (d.gusta_venidos ?? "–") + "</b></div></div>" +
-    '<div class="chart"><h3>Promedio “¿Cuánto te sentís riogalleguense?” (1 a 5)</h3>' +
-    '<div class="bar-row"><span>Quedados</span><div class="bar"><i style="width:' + pct(d.riogall_nacidos || 0, 5) + '%"></i></div><b>' + (d.riogall_nacidos ?? "–") + "</b></div>" +
-    '<div class="bar-row"><span>Venidos</span><div class="bar"><i style="width:' + pct(d.riogall_venidos || 0, 5) + '%"></i></div><b>' + (d.riogall_venidos ?? "–") + "</b></div></div>" +
-    chart("Motivo de llegada (venidos)", d.motivo_llegada) +
-    chart("Edad de llegada (venidos)", d.edad_llegada) +
-    chart("¿Te trajeron o viniste por tu cuenta?", d.trajeron_de_chico) +
-    chart("Lo que más gusta", d.lo_mejor) +
-    chart("Lo que menos gusta", d.lo_peor) +
-    chart("¿Seguir viviendo acá?", d.futuro) +
-    chart("Años viviendo en la ciudad", d.anios_en_ciudad) +
-    chart("Rango de edad", d.grupo_edad);
+    '<div class="kpis"><div class="kpi"><b>' + T + "</b><span>Respuestas</span></div>" +
+    '<div class="kpi"><b>' + pct(d.nacidos, T) + "%</b><span>Quedados (nacidos acá)</span></div>" +
+    '<div class="kpi"><b>' + pct(V, T) + "%</b><span>Venidos</span></div></div>" +
+    (T < 30 ? '<div class="hint">Muestra todavía pequeña (menos de 30 respuestas): los resultados son orientativos.</div>' : "") +
+    avg("¿Te gusta la ciudad? Promedio de 1 a 5", T, 0, d.gusta_nacidos, d.gusta_venidos) +
+    avg("¿Cuánto te sentís riogalleguense? Promedio de 1 a 5", T, 0, d.riogall_nacidos, d.riogall_venidos) +
+    avg("¿Cuánto te sentís parte de la comunidad? Promedio de 1 a 5", T, 0, d.conexion_nacidos, d.conexion_venidos) +
+    chart("Siendo venido/a, ¿te sentiste recriminado/a o excluido/a? (venidos)", d.sentido_excluido, V, "sentido_excluido") +
+    chart("Motivo de llegada (venidos)", d.motivo_llegada, V, "motivo_llegada") +
+    chart("Edad de llegada (venidos)", d.edad_llegada, V, "edad_llegada") +
+    chart("¿Te trajeron o viniste por tu cuenta? (venidos)", d.trajeron_de_chico, V, "trajeron_de_chico") +
+    chart("Años viviendo en la ciudad (venidos)", d.anios_en_ciudad, V, "anios_en_ciudad") +
+    chart("Lo que más gusta", d.lo_mejor, T, "lo_mejor", multi) +
+    chart("Lo que menos gusta", d.lo_peor, T, "lo_peor", multi) +
+    chart("Qué mejorarían de la ciudad", d.mejoraria, T, "mejoraria", multi) +
+    chart("¿La falta de naturaleza en lugares públicos influye en el bienestar?", d.naturaleza_bienestar, T, "naturaleza_bienestar") +
+    chart("¿Crecimiento o receso?", d.momento_ciudad, T, "momento_ciudad") +
+    chart("¿Recomendarías Río Gallegos para vivir?", d.recomendaria, T, "recomendaria") +
+    chart("Lo primero que mostrarían a un visitante", d.mostraria_visitante, T, "mostraria_visitante") +
+    chart("¿Viviste afuera más de un año? (quedados)", d.vivio_afuera, d.nacidos, "vivio_afuera") +
+    chart("¿Seguir viviendo acá?", d.futuro, T, "futuro") +
+    chart("Motivo principal para irse (quienes quieren irse)", d.motivo_irse, irse, "motivo_irse") +
+    chart("Rango de edad", d.grupo_edad, T, "grupo_edad");
 })();
 </script>
 </body>

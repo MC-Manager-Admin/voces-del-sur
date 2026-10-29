@@ -14,20 +14,36 @@
       options: ["Me trajeron mi familia", "Vine por decisión propia"] },
     { id: "motivo_llegada", type: "single", q: "¿Cuál fue el motivo principal de la mudanza?", show: venido,
       options: ["Trabajo", "Estudio", "Familia", "Petróleo, minería o industria", "Estado o fuerzas de seguridad", "Calidad de vida", "Otro"] },
-    { id: "anios_en_ciudad", type: "single", q: "¿Hace cuánto vivís en Río Gallegos?",
+    { id: "anios_en_ciudad", type: "single", q: "¿Hace cuánto vivís en Río Gallegos?", show: venido,
       options: ["Menos de 1 año", "1 a 5 años", "5 a 10 años", "10 a 20 años", "Más de 20 años"] },
+    { id: "vivio_afuera", type: "single", q: "¿Viviste alguna vez fuera de Río Gallegos por más de un año?", show: (a) => a.nacio_rg === true,
+      options: ["No, siempre viví acá", "Sí, me fui y volví"] },
     { id: "gusta_ciudad", type: "scale", q: "¿Te gusta la ciudad?", low: "Nada", high: "Muchísimo" },
     { id: "lo_mejor", type: "multi", max: 3, q: "¿Qué es lo que más te gusta de Río Gallegos?", hint: "Elegí hasta 3.",
       options: ["La tranquilidad", "La gente", "El paisaje y la costa", "La seguridad", "Las oportunidades laborales", "La naturaleza cerca", "La vida cultural", "El costo de vida"] },
     { id: "lo_peor", type: "multi", max: 3, q: "¿Qué es lo que menos te gusta?", hint: "Elegí hasta 3.",
       options: ["El viento", "El frío y el clima", "La distancia con otras ciudades", "El costo de vida", "Pocas oportunidades", "Poca oferta de ocio y cultura", "Transporte y servicios", "El estado de las calles"] },
+    { id: "mejoraria", type: "multi", max: 3, q: "¿Qué mejorarías de la ciudad?", hint: "Elegí hasta 3.",
+      options: ["Más espacios verdes y plazas", "Calles y veredas", "Transporte público", "Actividades culturales y de ocio", "Salud", "Educación y universidad", "Empleo y economía", "Vivienda", "Seguridad", "Servicios (luz, gas, agua, internet)"] },
+    { id: "naturaleza_bienestar", type: "single", q: "¿Creés que la falta de naturaleza en los lugares públicos influye en el bienestar de la gente?",
+      options: ["Sí, mucho", "Un poco", "No influye"] },
+    { id: "momento_ciudad", type: "single", q: "Últimamente, ¿notás que Río Gallegos está en crecimiento o en receso?",
+      options: ["Está en receso económico", "Está en crecimiento"] },
+    { id: "mostraria_visitante", type: "single", q: "Si te visita alguien de afuera, ¿qué es lo primero que le mostrarías?",
+      options: ["La costa y la ría", "Museos e historia", "La gastronomía", "La naturaleza cercana", "Plazas y paseos", "La gente y sus costumbres"] },
+    { id: "recomendaria", type: "single", q: "¿Recomendarías Río Gallegos para vivir?",
+      options: ["Sí", "Depende", "No"] },
     { id: "se_siente_riogalleguense", type: "scale", q: "¿Cuánto te sentís riogalleguense?", low: "Nada", high: "Totalmente" },
+    { id: "conexion_comunidad", type: "scale", q: "¿Cuánto te sentís parte de la comunidad de la ciudad?", low: "Nada", high: "Totalmente" },
+    { id: "sentido_excluido", type: "single", show: venido,
+      q: "Siendo venido/a, ¿te sentiste alguna vez recriminado/a o excluido/a por quienes nacieron y se criaron acá?",
+      options: ["Nunca", "Alguna vez", "Seguido"] },
     { id: "futuro", type: "single", q: "¿Pensás seguir viviendo acá?",
       options: ["Quiero quedarme", "Quiero irme", "Todavía no lo sé"] },
+    { id: "motivo_irse", type: "single", q: "¿Cuál sería el motivo principal para irte?", show: (a) => a.futuro === "Quiero irme",
+      options: ["Trabajo", "Estudio", "El clima", "El costo de vida", "Más oportunidades en otro lado", "Familia", "Otro"] },
     { id: "grupo_edad", type: "single", q: "¿En qué rango de edad estás?",
-      options: ["Menos de 18", "18 a 25", "26 a 35", "36 a 50", "Más de 50"] },
-    { id: "comentario", type: "text", multiline: true, optional: true, max: 500,
-      q: "¿Querés contarnos algo más?", hint: "Opcional. Una anécdota, una opinión, lo que quieras." }
+      options: ["Menos de 18", "18 a 25", "26 a 35", "36 a 50", "Más de 50"] }
   ];
 
   const answers = {};
@@ -103,20 +119,30 @@
   async function submit() {
     $("next").disabled = true;
     $("next").textContent = "Enviando…";
+    const vis = new Set(visible().map((x) => x.id));
+    const g = (id) => (vis.has(id) ? answers[id] : undefined);
     const row = {
       nacio_rg: answers.nacio_rg,
-      origen: answers.origen || null,
-      edad_llegada: answers.edad_llegada || null,
-      trajeron_de_chico: answers.trajeron_de_chico || null,
-      motivo_llegada: answers.motivo_llegada || null,
-      anios_en_ciudad: answers.anios_en_ciudad,
-      gusta_ciudad: answers.gusta_ciudad,
-      lo_mejor: answers.lo_mejor,
-      lo_peor: answers.lo_peor,
-      se_siente_riogalleguense: answers.se_siente_riogalleguense,
-      futuro: answers.futuro,
-      grupo_edad: answers.grupo_edad,
-      comentario: answers.comentario || null
+      origen: g("origen"),
+      edad_llegada: g("edad_llegada"),
+      trajeron_de_chico: g("trajeron_de_chico"),
+      motivo_llegada: g("motivo_llegada"),
+      anios_en_ciudad: g("anios_en_ciudad"),
+      vivio_afuera: g("vivio_afuera"),
+      gusta_ciudad: g("gusta_ciudad"),
+      lo_mejor: g("lo_mejor"),
+      lo_peor: g("lo_peor"),
+      mejoraria: g("mejoraria"),
+      naturaleza_bienestar: g("naturaleza_bienestar"),
+      momento_ciudad: g("momento_ciudad"),
+      mostraria_visitante: g("mostraria_visitante"),
+      recomendaria: g("recomendaria"),
+      se_siente_riogalleguense: g("se_siente_riogalleguense"),
+      conexion_comunidad: g("conexion_comunidad"),
+      sentido_excluido: g("sentido_excluido"),
+      futuro: g("futuro"),
+      motivo_irse: g("motivo_irse"),
+      grupo_edad: g("grupo_edad")
     };
     const { error } = await sb.from("respuestas").insert(row);
     if (error) {
