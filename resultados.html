@@ -45,7 +45,7 @@ function chart(title, obj, denom, key, note) {
   if (!entries.length || !denom) return "";
   if (ORDER[key]) entries.sort((a, b) => ORDER[key].indexOf(a[0]) - ORDER[key].indexOf(b[0]));
   else entries.sort((a, b) => b[1] - a[1]);
-  return '<div class="chart"><h3>' + esc(title) + ' <small style="color:#5b6785;font-weight:400">(n=' + denom + ")</small></h3>" +
+  return '<div class="chart"><h3>' + esc(title) + "</h3>" +
     entries.map(([k, v]) => '<div class="bar-row"><span>' + esc(k) + '</span><div class="bar"><i style="width:' + pct(v, denom) + '%"></i></div><b>' + pct(v, denom) + "%</b></div>").join("") +
     (note ? '<div class="hint" style="margin-top:.4rem">' + esc(note) + "</div>" : "") + "</div>";
 }
